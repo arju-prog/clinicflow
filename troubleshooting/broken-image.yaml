@@ -1,0 +1,28 @@
+# LAB 1 — ImagePullBackOff
+#   kubectl apply -f troubleshooting/broken-image.yaml
+#   kubectl get pods -n clinicflow -l lab=broken-image
+#   kubectl describe pod -n clinicflow -l lab=broken-image      # read the Events section
+#   kubectl get events -n clinicflow --sort-by=.lastTimestamp | tail
+# Symptom: STATUS ErrImagePull -> ImagePullBackOff
+# Cause:   the tag below was never pushed (CI only pushes full Git-SHA tags).
+# Fix:     kubectl -n clinicflow set image deploy/clinicflow-broken-image \
+#            backend=ghcr.io/arju-prog/clinicflow-backend:<a real SHA from GHCR>
+# Cleanup: kubectl delete -f troubleshooting/broken-image.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clinicflow-broken-image
+  namespace: clinicflow
+  labels: { lab: broken-image }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { lab: broken-image }
+  template:
+    metadata:
+      labels: { lab: broken-image }
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/arju-prog/clinicflow-backend:v9.9.9-does-not-exist
+          ports: [{ containerPort: 8000 }]

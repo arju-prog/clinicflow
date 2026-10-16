@@ -1,0 +1,25 @@
+# LAB 2 — Service with no endpoints
+#   kubectl apply -f troubleshooting/broken-service.yaml
+#   kubectl -n clinicflow get endpointslices -l kubernetes.io/service-name=clinicflow-api-broken   # no endpoints
+#   kubectl -n clinicflow describe svc clinicflow-api-broken                                       # Endpoints: <none>
+#   kubectl -n clinicflow get pods --show-labels -l app.kubernetes.io/component=backend
+#   kubectl -n clinicflow run curl --rm -it --image=busybox:1.37 --restart=Never -- \
+#       wget -qO- -T 3 http://clinicflow-api-broken:8000/health                               # times out
+# Symptom: the Service exists and has a ClusterIP, but every request fails.
+# Cause:   the selector says "backnd" (typo); no Pod carries that label, so the Service
+#          has zero endpoints. Labels are the only link between a Service and its Pods.
+# Fix:     kubectl -n clinicflow patch svc clinicflow-api-broken --type merge \
+#            -p '{"spec":{"selector":{"app.kubernetes.io/component":"backend"}}}'
+# Cleanup: kubectl delete -f troubleshooting/broken-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: clinicflow-api-broken
+  namespace: clinicflow
+spec:
+  selector:
+    app.kubernetes.io/name: clinicflow
+    app.kubernetes.io/component: backnd
+  ports:
+    - port: 8000
+      targetPort: 8000

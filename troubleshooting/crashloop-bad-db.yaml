@@ -1,0 +1,35 @@
+# LAB 3 — CrashLoopBackOff / readiness failure from bad configuration
+#   kubectl apply -f troubleshooting/crashloop-bad-db.yaml
+#   kubectl -n clinicflow get pods -l lab=bad-db -w          # Running but 0/1 READY, then restarts
+#   kubectl -n clinicflow logs -l lab=bad-db --tail=30        # alembic: password authentication failed
+#   kubectl -n clinicflow describe pod -l lab=bad-db          # startup/readiness probe failures
+# Cause:   DATABASE_URL has the wrong password, so `alembic upgrade head` fails at start.
+# Lesson:  liveness (/health) vs readiness (/ready): a pod that can't reach its database
+#          must never receive traffic.
+# Cleanup: kubectl delete -f troubleshooting/crashloop-bad-db.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clinicflow-bad-db
+  namespace: clinicflow
+  labels: { lab: bad-db }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { lab: bad-db }
+  template:
+    metadata:
+      labels: { lab: bad-db }
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/arju-prog/clinicflow-backend:REPLACE_WITH_SHA   # or clinicflow-backend:local on kind
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://clinicflow:wrong-password@clinicflow-postgres:5432/clinicflow
+          readinessProbe:
+            httpGet: { path: /ready, port: 8000 }
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 20
