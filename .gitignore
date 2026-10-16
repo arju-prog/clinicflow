@@ -1,0 +1,40 @@
+# --- Secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+terraform.tfvars
+*.auto.tfvars
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+pytest-report.xml
+*.db
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# --- Editors / OS / tools ---
+.idea/
+.vscode/
+.DS_Store
+*.log
+.playwright-mcp/

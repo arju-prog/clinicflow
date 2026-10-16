@@ -1,0 +1,10 @@
+.git
+.github
+.env
+**/.env
+**/node_modules
+**/.venv
+**/__pycache__
+terraform
+helm
+docs
