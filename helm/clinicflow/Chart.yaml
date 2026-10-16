@@ -1,0 +1,9 @@
+apiVersion: v2
+name: clinicflow
+description: ClinicFlow - clinic appointment scheduling (React + FastAPI + PostgreSQL)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords: [fastapi, react, postgresql, clinic]
+maintainers:
+  - name: Arjun Aggarwal

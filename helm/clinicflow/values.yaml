@@ -1,0 +1,93 @@
+# Default values for the ClinicFlow chart.
+# Override per environment with values-dev.yaml (kind) or values-prod.yaml (EKS).
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Needed only if your GHCR packages are private, e.g.
+#   kubectl -n clinicflow create secret docker-registry ghcr-pull \
+#     --docker-server=ghcr.io --docker-username=<user> --docker-password=<PAT with read:packages>
+imagePullSecrets: []
+# - name: ghcr-pull
+
+backend:
+  image:
+    repository: ghcr.io/arju-prog/clinicflow-backend
+    tag: ""            # CI sets this to the Git commit SHA; defaults to .Chart.AppVersion
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  seedDemoData: true   # populate an empty database with demo doctors/patients/appointments
+  corsOrigins: []      # same-origin through the Ingress, so CORS is not needed by default
+  resources:
+    requests: { cpu: 100m, memory: 160Mi }
+    limits: { cpu: 500m, memory: 384Mi }
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 60
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+frontend:
+  image:
+    repository: ghcr.io/arju-prog/clinicflow-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+  hpa:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# In-cluster PostgreSQL (StatefulSet + PVC). For production on AWS, prefer Amazon RDS:
+# set postgres.enabled=false and externalDatabase.host to the RDS endpoint.
+postgres:
+  enabled: true
+  image: postgres:17-alpine
+  database: clinicflow
+  username: clinicflow
+  # Leave empty to auto-generate a random password on first install. It is stored in a
+  # Secret and reused on every upgrade (so it always matches the data on the volume).
+  password: ""
+  persistence:
+    size: 5Gi
+    storageClass: ""   # "" = cluster default (kind: standard, EKS: gp3 from k8s/storageclass-gp3.yaml)
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+externalDatabase:
+  host: ""
+  port: 5432
+
+ingress:
+  enabled: true
+  className: traefik
+  host: ""             # "" = accept any hostname (handy for a raw AWS load-balancer DNS name)
+  annotations: {}
+  tls: []
+  # - secretName: clinicflow-tls
+  #   hosts: [clinic.example.com]
+
+networkPolicy:
+  enabled: true        # only backend pods may connect to PostgreSQL
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    labels:
+      release: kube-prometheus-stack
+  prometheusRule:
+    enabled: true
+  grafanaDashboard:
+    enabled: true

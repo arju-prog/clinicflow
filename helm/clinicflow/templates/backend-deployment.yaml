@@ -1,0 +1,102 @@
+{{- $fullname := include "clinicflow.fullname" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-backend
+  labels:
+    {{- include "clinicflow.labels" . | nindent 4 }}
+    {{- include "clinicflow.selectorLabels" (dict "root" . "component" "backend") | nindent 4 }}
+spec:
+  {{- if not .Values.backend.hpa.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0   # never drop below the desired count during a deploy
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "clinicflow.selectorLabels" (dict "root" . "component" "backend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "clinicflow.labels" . | nindent 8 }}
+        {{- include "clinicflow.selectorLabels" (dict "root" . "component" "backend") | nindent 8 }}
+        app.kubernetes.io/version: {{ .Values.backend.image.tag | default .Chart.AppVersion | trunc 63 | quote }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # Spread replicas across nodes so one node failure doesn't take the API down.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "clinicflow.selectorLabels" (dict "root" . "component" "backend") | nindent 14 }}
+      initContainers:
+        # Wait for PostgreSQL so `alembic upgrade head` doesn't crash-loop on first install.
+        - name: wait-for-db
+          image: {{ .Values.postgres.image }}
+          command: ["sh", "-c", "until pg_isready -h {{ include "clinicflow.postgresHost" . }} -p {{ .Values.externalDatabase.port }} -U {{ .Values.postgres.username }}; do echo waiting for postgres; sleep 2; done"]
+          securityContext:
+            {{- include "clinicflow.containerSecurityContext" . | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 50m, memory: 32Mi }
+      containers:
+        - name: backend
+          image: {{ include "clinicflow.backendImage" . }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_VERSION
+              value: {{ .Values.backend.image.tag | default .Chart.AppVersion | quote }}
+            - name: SEED_DEMO_DATA
+              value: {{ .Values.backend.seedDemoData | quote }}
+            - name: CORS_ORIGINS
+              value: {{ .Values.backend.corsOrigins | toJson | quote }}
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: {{ $fullname }}-postgres, key: username } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ $fullname }}-postgres, key: password } }
+            - name: DB_NAME
+              valueFrom: { secretKeyRef: { name: {{ $fullname }}-postgres, key: database } }
+            # $(VAR) references are expanded by Kubernetes from the env vars above,
+            # so the password never appears in the Deployment spec.
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://$(DB_USER):$(DB_PASSWORD)@{{ include "clinicflow.postgresHost" . }}:{{ .Values.externalDatabase.port }}/$(DB_NAME)"
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 3
+            failureThreshold: 40   # allow up to 2 minutes for migrations on first start
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 15
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          securityContext:
+            {{- include "clinicflow.containerSecurityContext" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

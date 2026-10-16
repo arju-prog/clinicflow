@@ -1,0 +1,19 @@
+{{- $fullname := include "clinicflow.fullname" . }}
+{{- range $component, $port := dict "backend" 8000 "frontend" 80 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ $component }}
+  labels:
+    {{- include "clinicflow.labels" $ | nindent 4 }}
+    {{- include "clinicflow.selectorLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "clinicflow.selectorLabels" (dict "root" $ "component" $component) | nindent 4 }}
+  ports:
+    - name: http          # the ServiceMonitor scrapes the backend by this port name
+      port: {{ $port }}
+      targetPort: http
+{{- end }}

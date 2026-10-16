@@ -1,0 +1,35 @@
+{{- $fullname := include "clinicflow.fullname" . }}
+# `helm test <release>` runs this pod: it passes only if the API is ready (DB reachable)
+# and the frontend is serving.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ $fullname }}-smoke-test
+  labels:
+    {{- include "clinicflow.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: smoke
+      image: busybox:1.37
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          wget -qO- http://{{ $fullname }}-backend:8000/ready
+          wget -qO- http://{{ $fullname }}-backend:8000/api/appointments/stats
+          wget -qO- http://{{ $fullname }}-frontend:80/healthz
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]

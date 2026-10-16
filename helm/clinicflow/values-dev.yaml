@@ -1,0 +1,17 @@
+# Local kind cluster (see scripts/kind-up.sh). Images are built locally and loaded
+# into kind with `kind load docker-image`, so they are never pulled from a registry.
+backend:
+  image:
+    repository: clinicflow-backend
+    tag: local
+    pullPolicy: Never
+frontend:
+  image:
+    repository: clinicflow-frontend
+    tag: local
+    pullPolicy: Never
+ingress:
+  host: clinicflow.localhost
+postgres:
+  persistence:
+    size: 1Gi

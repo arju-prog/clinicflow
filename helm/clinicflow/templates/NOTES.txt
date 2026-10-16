@@ -1,0 +1,20 @@
+ClinicFlow {{ .Values.backend.image.tag | default .Chart.AppVersion }} is deployed to namespace "{{ .Release.Namespace }}".
+
+  kubectl get pods,svc,ingress,hpa -n {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+
+Open the app through the Ingress ({{ .Values.ingress.className }}):
+{{- if .Values.ingress.host }}
+  http://{{ .Values.ingress.host }}/
+{{- else }}
+  kubectl get svc -A -l app.kubernetes.io/name=traefik   # use the EXTERNAL-IP / hostname
+{{- end }}
+{{- end }}
+
+Without an Ingress:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "clinicflow.fullname" . }}-frontend 8080:80
+  open http://localhost:8080   (API docs: kubectl port-forward svc/{{ include "clinicflow.fullname" . }}-backend 8000:8000 -> /docs)
+
+Smoke test the release:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}

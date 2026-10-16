@@ -1,0 +1,20 @@
+# AWS EKS. CI passes the image repository/tag (Git SHA) with --set.
+backend:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 150m, memory: 192Mi }
+    limits: { cpu: 750m, memory: 512Mi }
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+frontend:
+  replicaCount: 2
+  hpa:
+    enabled: true
+postgres:
+  persistence:
+    size: 10Gi
+    storageClass: gp3
+ingress:
+  host: ""   # set to your domain (or pass --set ingress.host=...) once DNS points at the load balancer
