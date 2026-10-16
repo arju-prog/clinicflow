@@ -11,6 +11,7 @@
 | M7 | `tf-01-plan.png`, `tf-02-aws-vpc-subnets.png`, `tf-03-aws-eks.png` | terraform plan/apply, VPC with 2 public + 2 private subnets, EKS cluster + node group (AWS CLI) |
 | M7 | `aws-console-01-vpc.png`, `aws-console-02-subnets.png` | AWS Console (Mumbai): `clinicflow-vpc` available; 2 public + 2 private `clinicflow-vpc-*` subnets in ap-south-1a/1b |
 | M7 | `aws-console-03-eks-clusters.png`, `aws-console-04-eks-cluster.png`, `aws-console-05-eks-compute.png` | AWS Console: `clinicflow-eks` Active (1.34), node group Active with 2 nodes |
+| M7 | `tf-04-destroy.png` | `terraform destroy`: 65 resources destroyed, state empty, 0 clusters/VPCs/NATs/instances/EIPs/LBs/volumes left |
 | M8 | `eks-01-kubectl-get-pods.png`, `eks-02-kubectl-get-svc.png`, `eks-03-helm-list.png`, `eks-04-app-via-ingress.png` | pods Running on 2 nodes, ClusterIP services, Ingress, HPA, PVC, Helm release, app through the Ingress controller |
 | M8/M9 | `eks-05-hpa-scaling.png` | HPA scaling 2 → 6 under load on EKS |
 | M9 | `08-metrics-endpoint.png`, `eks-06-prometheus-targets.png`, `eks-07-grafana-dashboard.png` | `/metrics`, Prometheus targets UP, Grafana with live traffic |
