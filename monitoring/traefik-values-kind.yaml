@@ -1,0 +1,11 @@
+# Traefik ingress controller for kind. (Kubernetes' ingress-nginx project was retired in
+# March 2026; Traefik implements the same standard Ingress API.)
+service:
+  spec:
+    type: NodePort
+ports:
+  web:
+    nodePort: 30080   # mapped to the laptop's port 80 by k8s/kind/cluster.yaml
+ingressClass:
+  enabled: true
+  isDefaultClass: true

@@ -1,0 +1,15 @@
+{{- if .Values.monitoring.grafanaDashboard.enabled }}
+# Grafana's sidecar (kube-prometheus-stack) auto-imports any ConfigMap with this label.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "clinicflow.fullname" . }}-dashboard
+  labels:
+    {{- include "clinicflow.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: ClinicFlow
+data:
+  clinicflow.json: |-
+    {{- .Files.Get "files/grafana-dashboard.json" | replace "__NAMESPACE__" .Release.Namespace | nindent 4 }}
+{{- end }}

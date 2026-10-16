@@ -1,0 +1,10 @@
+# Traefik ingress controller for EKS, exposed through an AWS Network Load Balancer.
+service:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+deployment:
+  replicas: 2
