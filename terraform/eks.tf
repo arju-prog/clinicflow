@@ -34,7 +34,7 @@ module "eks" {
     # before_compute: install before the node group so nodes boot with these settings.
     vpc-cni = {
       before_compute = true
-      # Prefix delegation raises the pod limit on a t3.medium from 17 to 110, enough
+      # Prefix delegation raises the per-node pod limit to 110, enough
       # headroom for the app + Prometheus stack + HPA scale-out on two small nodes.
       configuration_values = jsonencode({
         env = {

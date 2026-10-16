@@ -1,6 +1,6 @@
 # Deploying ClinicFlow to AWS (Terraform → EKS → GitHub Actions)
 
-> **Cost warning.** While it is running, this creates billable resources: the EKS control plane (~$0.10/h), two t3.medium nodes, a NAT gateway, a Network Load Balancer and small EBS volumes. Budget roughly **$0.30/hour (~$7/day)** in `ap-south-1`. **Run `terraform destroy` as soon as you have your screenshots.**
+> **Cost warning.** While it is running, this creates billable resources: the EKS control plane (~$0.10/h), two m7i-flex.large nodes, a NAT gateway, a Network Load Balancer and small EBS volumes. Budget roughly **$0.30/hour (~$7/day)** in `ap-south-1`. **Run `terraform destroy` as soon as you have your screenshots.**
 
 ## 0. Prerequisites
 

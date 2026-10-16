@@ -22,7 +22,7 @@ The app is the vehicle. The real subject is the DevOps path it travels: every co
                                                     │
  Terraform ─► AWS ap-south-1                         ▼
               VPC 10.30.0.0/16 ── 2 public + 2 private subnets, NAT
-              └── EKS 1.34 ── managed node group (t3.medium ×2, AL2023)
+              └── EKS 1.34 ── managed node group (m7i-flex.large ×2, AL2023)
                     │
                     ├── traefik (Ingress controller, NLB)
                     │      ├── /      ─► clinicflow-frontend  (React + Nginx, 2+ pods)

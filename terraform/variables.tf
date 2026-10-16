@@ -46,9 +46,9 @@ variable "az_count" {
 }
 
 variable "node_instance_types" {
-  description = "EC2 instance types for the managed node group"
+  description = "EC2 instance types for the managed node group. m7i-flex.large (2 vCPU, 8 GiB) is Free Tier eligible, so it also works on AWS accounts on the Free plan."
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["m7i-flex.large"]
 }
 
 variable "node_capacity_type" {
@@ -73,8 +73,9 @@ variable "node_desired_size" {
 }
 
 variable "node_max_size" {
-  type    = number
-  default = 4
+  description = "New AWS accounts have a 5 vCPU on-demand quota: 2 x 2-vCPU nodes fit, a third does not"
+  type        = number
+  default     = 2
 }
 
 variable "github_repository" {

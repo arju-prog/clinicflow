@@ -14,8 +14,8 @@ github_repository = "arju-prog/clinicflow"
 # Set to false if your AWS account already has a token.actions.githubusercontent.com provider.
 create_github_oidc_provider = true
 
-node_instance_types = ["t3.medium"]
+node_instance_types = ["m7i-flex.large"] # Free Tier eligible (AWS Free plan accounts cannot launch t3.medium)
 node_capacity_type  = "ON_DEMAND" # "SPOT" is much cheaper for a demo
 node_min_size       = 2
 node_desired_size   = 2
-node_max_size       = 4
+node_max_size       = 2   # 2 x 2 vCPU fits the default 5 vCPU on-demand quota of new accounts
