@@ -83,6 +83,18 @@ variable "github_repository" {
   type        = string
 }
 
+variable "github_oidc_subject_prefix" {
+  description = <<-EOT
+    Subject prefix GitHub puts in this repository's OIDC tokens. Newer repositories use immutable,
+    ID-based subjects (e.g. repo:owner@123/name@456), which stop a re-created repo with the same name
+    from inheriting access. Find yours with:
+      gh api repos/<owner>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix
+    Leave empty to trust only the classic name-based subject.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "create_github_oidc_provider" {
   description = "Create the GitHub OIDC identity provider. Set false if your AWS account already has one."
   type        = bool

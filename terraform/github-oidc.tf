@@ -17,6 +17,15 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
+  # Accept the classic name-based subject and, when configured, the immutable ID-based one.
+  github_oidc_subject_prefixes = compact(["repo:${var.github_repository}", var.github_oidc_subject_prefix])
+  github_oidc_subjects = flatten([
+    for prefix in local.github_oidc_subject_prefixes : [
+      "${prefix}:environment:production",
+      "${prefix}:ref:refs/heads/main",
+    ]
+  ])
+
   github_oidc_provider_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
 }
 
@@ -36,14 +45,11 @@ data "aws_iam_policy_document" "github_actions_trust" {
     }
 
     # The deploy job uses `environment: production`, which sets the token's subject to
-    # repo:<owner>/<repo>:environment:production. Pushes to main are also accepted.
+    # <prefix>:environment:production. Pushes to main are also accepted.
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:${var.github_repository}:environment:production",
-        "repo:${var.github_repository}:ref:refs/heads/main",
-      ]
+      values   = local.github_oidc_subjects
     }
   }
 }

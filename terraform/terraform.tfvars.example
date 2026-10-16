@@ -11,6 +11,10 @@ kubernetes_version = "1.34"
 # The GitHub repository allowed to deploy via OIDC (owner/name).
 github_repository = "arju-prog/clinicflow"
 
+# GitHub's immutable OIDC subject for this repo (changes if the repo is deleted and re-created):
+#   gh api repos/arju-prog/clinicflow/actions/oidc/customization/sub --jq .sub_claim_prefix
+github_oidc_subject_prefix = "repo:arju-prog@180331249/clinicflow@1422194852"
+
 # Set to false if your AWS account already has a token.actions.githubusercontent.com provider.
 create_github_oidc_provider = true
 
