@@ -129,5 +129,7 @@ Then remove the `AWS_DEPLOY_ROLE_ARN` repository variable, so later pushes skip 
 | Pods `ImagePullBackOff` with `403/denied` | GHCR packages are private: make them public or use a pull secret (step 1) |
 | `clinicflow-postgres-0` Pending, PVC Pending | `kubectl get sc`: gp3 must exist and be the default; check the `aws-ebs-csi-driver` addon is ACTIVE |
 | HPA shows `<unknown>/60%` | metrics-server not ready yet; wait one minute, or check `kubectl top pods -n clinicflow` |
-| Deploy job: `Not authorized to perform sts:AssumeRoleWithWebIdentity` | `github_repository` in tfvars must exactly match `<owner>/<repo>` |
+| Deploy job: `Not authorized to perform sts:AssumeRoleWithWebIdentity` | `github_repository` must match `<owner>/<repo>`. Newer repos send **immutable ID-based subjects**: set `github_oidc_subject_prefix` from `gh api repos/<owner>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix` (it changes if the repo is deleted and re-created) |
+| Node group stuck `CREATING`, CloudTrail shows `instance type is not eligible for Free Tier` | the AWS account is on the **Free plan**: use a Free Tier type such as `m7i-flex.large` (the default) |
+| Traefik service `EXTERNAL-IP <pending>`, event says `This AWS account currently does not support creating load balancers` | another **Free plan** restriction. Upgrade the account to a paid plan (Billing console → *Upgrade plan*; remaining credits are kept), or demo through `kubectl -n traefik port-forward svc/traefik 8088:80` → http://localhost:8088 (still routed by the Ingress) |
 | Deploy job: `the server has asked for the client to provide credentials` | the EKS access entry for the role is missing; re-run `terraform apply` |
