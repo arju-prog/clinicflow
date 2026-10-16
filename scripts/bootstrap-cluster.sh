@@ -33,7 +33,7 @@ echo "==> metrics-server"
 METRICS_ARGS=()
 [[ "$TARGET" == "kind" ]] && METRICS_ARGS=(-f "$ROOT/monitoring/metrics-server-values-kind.yaml")
 helm upgrade --install metrics-server metrics-server/metrics-server --version 3.14.0 \
-  -n kube-system "${METRICS_ARGS[@]}" --wait
+  -n kube-system ${METRICS_ARGS[@]+"${METRICS_ARGS[@]}"} --wait
 
 echo "==> kube-prometheus-stack"
 helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --version 92.9.0 \
