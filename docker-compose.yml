@@ -1,0 +1,51 @@
+# Full local stack:  docker compose up --build   ->  http://localhost:3000
+name: clinicflow
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: clinicflow
+      POSTGRES_USER: clinicflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clinicflow}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"   # 5433 on the host avoids clashing with a local Postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinicflow -d clinicflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: ${APP_VERSION:-local}
+    environment:
+      DATABASE_URL: postgresql+psycopg://clinicflow:${POSTGRES_PASSWORD:-clinicflow}@postgres:5432/clinicflow
+      SEED_DEMO_DATA: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy   # wait for Postgres before running migrations
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        APP_VERSION: ${APP_VERSION:-local}
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:8080"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
