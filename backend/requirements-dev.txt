@@ -1,0 +1,6 @@
+# Test-only dependencies (CI + local). Kept out of the runtime image to shrink its attack surface.
+-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx2==2.13.1
+ruff==0.17.1
