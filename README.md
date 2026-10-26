@@ -227,4 +227,4 @@ Submission evidence (rubric → files → screenshots) is in **[docs/SUBMISSION.
 ## Presentation and demo video
 
 - **[ClinicFlow-Presentation.pptx](ClinicFlow-Presentation.pptx)**: the 18-slide final presentation, one slide per pipeline stage, with speaker notes.
-- **[ClinicFlow-Demo-4K.mp4](ClinicFlow-Demo-4K.mp4)**: a narrated 4K walkthrough (9.5 minutes) of the app and every stage, with subtitles in [ClinicFlow-Demo-4K.srt](ClinicFlow-Demo-4K.srt). The narration script is [docs/DEMO-VIDEO-SCRIPT.md](docs/DEMO-VIDEO-SCRIPT.md).
+- **[ClinicFlow-Demo-4K.mp4](ClinicFlow-Demo-4K.mp4)**: a narrated 4K walkthrough (9.5 minutes) of the app and every stage, with subtitles in [ClinicFlow-Demo-4K.srt](ClinicFlow-Demo-4K.srt).
