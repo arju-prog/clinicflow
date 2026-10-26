@@ -1,0 +1,516 @@
+1
+00:00:00,150 --> 00:00:03,600
+Picture a small clinic on a Monday morning.
+
+2
+00:00:03,920 --> 00:00:09,372
+The phone is ringing, three patients are waiting at the desk, and the receptionist
+
+3
+00:00:09,372 --> 00:00:13,095
+books two people into the same doctor’s ten-thirty slot.
+
+4
+00:00:13,415 --> 00:00:18,540
+Nobody notices until both of them are sitting in the waiting room.
+
+5
+00:00:18,860 --> 00:00:23,460
+That small, very real problem is where this project started.
+
+6
+00:00:23,860 --> 00:00:28,885
+I’m Arjun, and this is ClinicFlow, my DevOps final capstone.
+
+7
+00:00:29,205 --> 00:00:32,280
+The app is a clinic front-desk system.
+
+8
+00:00:32,600 --> 00:00:36,200
+But honestly, the app is only half the story.
+
+9
+00:00:36,520 --> 00:00:43,047
+The other half is the journey: how a change I make on my laptop ends up running on a
+
+10
+00:00:43,047 --> 00:00:49,342
+Kubernetes cluster in AWS, tested, scanned, autoscaling and monitored, without me
+
+11
+00:00:49,342 --> 00:00:51,595
+logging into a single server.
+
+12
+00:00:51,995 --> 00:00:54,445
+Let me show you the app first.
+
+13
+00:00:54,765 --> 00:01:00,319
+This is what the receptionist sees: today’s appointments, who has checked in, and
+
+14
+00:01:00,319 --> 00:01:01,965
+how busy each doctor is.
+
+15
+00:01:02,285 --> 00:01:04,935
+Booking is a simple form.
+
+16
+00:01:05,255 --> 00:01:08,455
+Pick a patient, pick a doctor, pick a time.
+
+17
+00:01:08,855 --> 00:01:11,530
+Now here’s the part I care about.
+
+18
+00:01:11,850 --> 00:01:17,859
+If I try to book the same doctor into a slot that’s already taken, the backend
+
+19
+00:01:17,859 --> 00:01:18,475
+refuses.
+
+20
+00:01:18,795 --> 00:01:25,574
+It returns a 409 conflict, and the receptionist sees exactly which appointment is in
+
+21
+00:01:25,574 --> 00:01:26,220
+the way.
+
+22
+00:01:26,540 --> 00:01:32,065
+The same rule protects patients, so nobody can be in two rooms at once.
+
+23
+00:01:32,385 --> 00:01:38,310
+And because front desks use whatever device is nearby, it works on a phone too.
+
+24
+00:01:38,710 --> 00:01:40,635
+So that’s the what.
+
+25
+00:01:40,955 --> 00:01:42,630
+Now the how.
+
+26
+00:01:42,950 --> 00:01:48,663
+This is the route every change takes: thirteen stages, from the app itself all the
+
+27
+00:01:48,663 --> 00:01:51,450
+way to troubleshooting it in production.
+
+28
+00:01:51,770 --> 00:01:57,159
+I’ll walk through them in order, and I’ll stick to what actually happened, including
+
+29
+00:01:57,159 --> 00:01:58,570
+the things that broke.
+
+30
+00:01:58,970 --> 00:02:01,770
+Stage one is the application.
+
+31
+00:02:02,090 --> 00:02:09,007
+A FastAPI backend with full create, read, update and delete for doctors, patients
+
+32
+00:02:09,007 --> 00:02:11,740
+and appointments, on PostgreSQL.
+
+33
+00:02:12,060 --> 00:02:18,059
+The schema is managed with Alembic migrations, so the database structure lives in
+
+34
+00:02:18,059 --> 00:02:19,910
+Git like everything else.
+
+35
+00:02:20,230 --> 00:02:24,255
+There are two health endpoints, and they do different jobs.
+
+36
+00:02:24,575 --> 00:02:28,375
+Health only answers, “is the process alive?”
+
+37
+00:02:28,695 --> 00:02:31,420
+Ready also checks the database.
+
+38
+00:02:31,740 --> 00:02:37,615
+That difference matters later, because Kubernetes only sends traffic to pods that
+
+39
+00:02:37,615 --> 00:02:38,340
+are ready.
+
+40
+00:02:38,740 --> 00:02:40,790
+Stage two is Git.
+
+41
+00:02:41,110 --> 00:02:46,464
+Every change is a commit with a message that says what it does, and there are more
+
+42
+00:02:46,464 --> 00:02:49,010
+than twenty of them in this repository.
+
+43
+00:02:49,330 --> 00:02:54,651
+The gitignore keeps secrets, environment files and caches out of the history,
+
+44
+00:02:54,651 --> 00:02:59,005
+because once a secret is in Git, you should treat it as public.
+
+45
+00:02:59,405 --> 00:03:03,330
+Stage three is the pipeline, in GitHub Actions.
+
+46
+00:03:03,650 --> 00:03:09,550
+The moment I push to main, it runs the linter and thirty-six automated tests.
+
+47
+00:03:09,870 --> 00:03:12,095
+This is the first gate.
+
+48
+00:03:12,415 --> 00:03:17,665
+If a single test fails, nothing gets built and nothing gets deployed.
+
+49
+00:03:17,985 --> 00:03:20,835
+A broken commit simply stops here.
+
+50
+00:03:21,235 --> 00:03:23,460
+Stage four is Docker.
+
+51
+00:03:23,780 --> 00:03:27,980
+The frontend and the backend are each packaged as an image.
+
+52
+00:03:28,300 --> 00:03:34,682
+The frontend uses a multi-stage build: Node compiles the React app, and only the
+
+53
+00:03:34,682 --> 00:03:38,750
+finished files are copied into a small Nginx image.
+
+54
+00:03:39,070 --> 00:03:42,795
+Both containers run as a non-root user.
+
+55
+00:03:43,115 --> 00:03:49,022
+And for local work, one command, docker compose up, brings up the frontend, the
+
+56
+00:03:49,022 --> 00:03:51,265
+backend and Postgres together.
+
+57
+00:03:51,665 --> 00:03:56,790
+Stage five is security, and this is my favourite part of the story.
+
+58
+00:03:57,110 --> 00:04:02,919
+The pipeline scans every image with Trivy and fails the build on any serious
+
+59
+00:04:02,919 --> 00:04:05,135
+vulnerability that has a fix.
+
+60
+00:04:05,455 --> 00:04:08,230
+The first time I ran it, it failed.
+
+61
+00:04:08,550 --> 00:04:14,825
+Four high-severity CVEs, in urllib3, msgpack and setuptools.
+
+62
+00:04:15,145 --> 00:04:19,270
+The strange thing was, my app doesn’t use any of them.
+
+63
+00:04:19,590 --> 00:04:25,715
+They came bundled inside pip, which is only needed while the image is being built.
+
+64
+00:04:26,035 --> 00:04:31,555
+So instead of patching them, I removed pip from the final image, and all four
+
+65
+00:04:31,555 --> 00:04:33,060
+findings disappeared.
+
+66
+00:04:33,380 --> 00:04:36,955
+Sometimes the best fix is deleting something.
+
+67
+00:04:37,355 --> 00:04:40,005
+Stage six is the registry.
+
+68
+00:04:40,325 --> 00:04:45,905
+Once the scan passes, the exact image that was scanned is pushed to GitHub’s
+
+69
+00:04:45,905 --> 00:04:47,300
+container registry.
+
+70
+00:04:47,620 --> 00:04:51,820
+It’s tagged with the Git commit hash, never “latest”.
+
+71
+00:04:52,140 --> 00:04:58,310
+That means any running container traces back to the exact code that produced it, and
+
+72
+00:04:58,310 --> 00:05:01,615
+rolling back is just deploying an older hash.
+
+73
+00:05:02,015 --> 00:05:04,490
+Stage seven is Terraform.
+
+74
+00:05:04,810 --> 00:05:11,494
+Instead of clicking around the AWS console, the infrastructure is code: a VPC with
+
+75
+00:05:11,494 --> 00:05:17,934
+public and private subnets across two availability zones, a NAT gateway, an EKS
+
+76
+00:05:17,934 --> 00:05:24,782
+cluster with two worker nodes in the Mumbai region, and an IAM role that lets GitHub
+
+77
+00:05:24,782 --> 00:05:27,635
+deploy without any stored AWS keys.
+
+78
+00:05:27,955 --> 00:05:33,986
+My AWS account is on the free plan, which blocked the usual instance type, so I
+
+79
+00:05:33,986 --> 00:05:37,955
+switched the nodes to one that’s free-tier eligible.
+
+80
+00:05:38,275 --> 00:05:44,000
+And when I was done, terraform destroy removed all sixty-five resources.
+
+81
+00:05:44,320 --> 00:05:50,320
+A real cluster costs money every hour, so tearing it down is part of the job.
+
+82
+00:05:50,720 --> 00:05:53,145
+Stage eight is Kubernetes.
+
+83
+00:05:53,465 --> 00:05:59,734
+Here’s the app running on EKS: two backend pods, two frontend pods, and Postgres
+
+84
+00:05:59,734 --> 00:06:03,965
+with its own storage volume, spread across both nodes.
+
+85
+00:06:04,285 --> 00:06:10,027
+If a pod dies, its deployment replaces it, and services give the pods a stable
+
+86
+00:06:10,027 --> 00:06:13,560
+address, so it doesn’t matter which one answers.
+
+87
+00:06:13,960 --> 00:06:16,085
+Stage nine is Helm.
+
+88
+00:06:16,405 --> 00:06:22,593
+Rather than hand-editing a pile of YAML files, the whole deployment is one chart:
+
+89
+00:06:22,593 --> 00:06:28,705
+deployments, services, ingress, the autoscaler, a network policy and monitoring.
+
+90
+00:06:29,025 --> 00:06:34,894
+The pipeline runs one helm upgrade with the new commit’s tag, and if the new pods
+
+91
+00:06:34,894 --> 00:06:38,300
+never become healthy, it rolls back on its own.
+
+92
+00:06:38,700 --> 00:06:41,200
+Stage ten is the ingress.
+
+93
+00:06:41,520 --> 00:06:48,450
+One entry point, two routes: the root path goes to the React frontend, and slash-api
+
+94
+00:06:48,450 --> 00:06:49,770
+goes to FastAPI.
+
+95
+00:06:50,090 --> 00:06:56,623
+I used Traefik as the ingress controller, because the old ingress-nginx project was
+
+96
+00:06:56,623 --> 00:06:58,040
+retired this year.
+
+97
+00:06:58,360 --> 00:07:05,115
+One honest caveat: the AWS free plan also blocks public load balancers, so for this
+
+98
+00:07:05,115 --> 00:07:09,185
+demo I reached the ingress through a port-forward.
+
+99
+00:07:09,505 --> 00:07:12,405
+The routing is exactly the same.
+
+100
+00:07:12,805 --> 00:07:19,155
+Stage eleven is autoscaling, and here I wanted proof, not just configuration.
+
+101
+00:07:19,475 --> 00:07:23,375
+So I ran a load generator inside the cluster.
+
+102
+00:07:23,695 --> 00:07:30,208
+CPU on the backend climbed to more than three times what each pod had requested, and
+
+103
+00:07:30,208 --> 00:07:36,567
+the horizontal pod autoscaler responded: two pods, then three, four, five, six, in
+
+104
+00:07:36,567 --> 00:07:38,195
+about ninety seconds.
+
+105
+00:07:38,595 --> 00:07:41,120
+Stage twelve is monitoring.
+
+106
+00:07:41,440 --> 00:07:47,381
+The backend exposes Prometheus metrics, including a couple I added myself, like how
+
+107
+00:07:47,381 --> 00:07:49,815
+many double-bookings were blocked.
+
+108
+00:07:50,135 --> 00:07:55,835
+Prometheus scraped all six pods during that test, and every target was up.
+
+109
+00:07:56,155 --> 00:08:02,068
+Grafana showed it live: around three hundred and ninety requests a second, zero
+
+110
+00:08:02,068 --> 00:08:08,055
+errors, and a ninety-fifth percentile latency of about ninety-five milliseconds.
+
+111
+00:08:08,455 --> 00:08:12,830
+Stage thirteen is troubleshooting, because things will break.
+
+112
+00:08:13,150 --> 00:08:16,450
+I wrote three deliberately broken setups.
+
+113
+00:08:16,770 --> 00:08:21,495
+A wrong image tag, which shows up as an image pull back-off.
+
+114
+00:08:21,815 --> 00:08:28,425
+A service whose label selector has a typo, so it has no endpoints and quietly drops
+
+115
+00:08:28,425 --> 00:08:29,540
+every request.
+
+116
+00:08:29,860 --> 00:08:35,185
+And a wrong database password, which leaves a pod stuck in a crash loop.
+
+117
+00:08:35,505 --> 00:08:41,437
+Each one is a small lesson in reading the events, the endpoints and the logs before
+
+118
+00:08:41,437 --> 00:08:42,080
+guessing.
+
+119
+00:08:42,480 --> 00:08:47,655
+Looking back, the most useful moments weren’t the ones that worked first time.
+
+120
+00:08:47,975 --> 00:08:53,764
+Pinning the Trivy action to an exact commit, after its version tags were hijacked
+
+121
+00:08:53,764 --> 00:08:55,050
+earlier this year.
+
+122
+00:08:55,370 --> 00:08:59,520
+Working around the limits of the AWS free plan.
+
+123
+00:08:59,840 --> 00:09:06,940
+Figuring out why GitHub’s new identity tokens didn’t match my AWS trust policy.
+
+124
+00:09:07,260 --> 00:09:10,835
+That’s the part that felt like real engineering.
+
+125
+00:09:11,235 --> 00:09:13,410
+So that’s ClinicFlow.
+
+126
+00:09:13,730 --> 00:09:19,962
+One commit sets off tests, a security scan, an image build, a registry push and a
+
+127
+00:09:19,962 --> 00:09:25,655
+Helm deploy to a cluster that scales itself and reports on its own health.
+
+128
+00:09:25,975 --> 00:09:29,475
+Every running pod traces back to a commit.
+
+129
+00:09:29,795 --> 00:09:31,720
+Thanks for watching.
+
